@@ -4,9 +4,9 @@ import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.
 
 // 🔹 Firebase Config (replace with your credentials)
 const firebaseConfig = {
-  apiKey: "YOUR_FIREBASE_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
+  apiKey: "AIzaSyBwIc14y20T7BP5CzbT6g6o2U2ZcjTH_9U",
+  authDomain: "tubialert-dc2fd.firebaseapp.com",
+  projectId: "tubialert-dc2fd",
 };
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -16,42 +16,56 @@ const db = getFirestore(app);
 // ----------------------
 async function loadDashboard() {
   try {
-    const ref = doc(db, "floodData", "latest");
+    const ref = doc(db, "sensor", "1");
     const snap = await getDoc(ref);
 
     if (snap.exists()) {
       const data = snap.data();
-      document.getElementById("waterLevel").innerText = data.waterLevel + "%";
+      document.getElementById("waterLevel").innerText = data.water + "%";
       document.getElementById("rainIntensity").innerText = data.rain + " mm/hr";
       document.getElementById("temperature").innerText = data.temp + "°";
 
       // Change Status Bar Color
       const status = document.getElementById("status");
-      if (data.waterLevel < 30) { status.innerText = "SAFE"; status.style.color = "#19c37d"; }
-      else if (data.waterLevel < 60) { status.innerText = "MONITOR"; status.style.color = "#f7c948"; }
-      else if (data.waterLevel < 80) { status.innerText = "ALERT"; status.style.color = "#f95c2b"; }
+      if (data.status === "SAFE") { status.innerText = "SAFE"; status.style.color = "#19c37d"; }
+      else if (data.status === "MONITORING") { status.innerText = "MONITOR"; status.style.color = "#f7c948"; }
+      else if (data.status === "ALERT") { status.innerText = "ALERT"; status.style.color = "#f95c2b"; }
       else { status.innerText = "EVACUATE"; status.style.color = "#e74c3c"; }
     }
   } catch (e) {
     console.error("Error loading dashboard:", e);
   }
 }
+async function getLocationKey(lat, lon, apiKey) {
+  try {
+    const res = await fetch(
+      `https://dataservice.accuweather.com/locations/v1/cities/geoposition/search?apikey=${apiKey}&q=${lat},${lon}`
+    );
+    const data = await res.json();
+    return data.Key;
+  } catch (e) {
+    console.error("Error getting location key:", e);
+    return null;
+  }
+}
 
-// ----------------------
-// Load Weather (OpenWeather API)
-// ----------------------
 async function loadWeather() {
-  const apiKey = "YOUR_OPENWEATHER_API_KEY";  // 👈 Replace
-  const lat = 14.8139;  // Gaya-gaya latitude
-  const lon = 121.045;  // Gaya-gaya longitude
+  const apiKey = "BphYMJ4IIbBH9XXfPnBUGTcn0EZIfoOb";
+  const locationKey = await getLocationKey(14.8139, 121.045, apiKey);
+
 
   try {
     const res = await fetch(
-      `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`
+      `https://dataservice.accuweather.com/currentconditions/v1/${locationKey}?apikey=${apiKey}&details=true`
     );
     const data = await res.json();
 
-    // Format time HH:MM AM/PM
+    if (data.length === 0) {
+      throw new Error("No weather data found");
+    }
+
+    const weatherData = data[0];
+
     const now = new Date();
     let hours = now.getHours();
     const minutes = String(now.getMinutes()).padStart(2, "0");
@@ -59,14 +73,16 @@ async function loadWeather() {
     hours = hours % 12 || 12;
     const formattedTime = hours + ":" + minutes + " " + ampm;
 
-    // Update UI
     document.getElementById("weatherTime").innerText = "As of " + formattedTime;
     document.getElementById("weatherDesc").innerText =
-      data.weather[0].description + " • " + data.main.humidity + "% humidity";
-    document.getElementById("temperature").innerText = Math.round(data.main.temp) + "°";
+      weatherData.WeatherText + " • " + weatherData.RelativeHumidity + "% humidity";
+    document.getElementById("temperature").innerText =
+      Math.round(weatherData.Temperature.Metric.Value) + "°";
   } catch (e) {
     console.error("Error loading weather:", e);
   }
+
+
 }
 
 // ----------------------
