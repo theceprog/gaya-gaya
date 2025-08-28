@@ -197,7 +197,7 @@
         
         function performRedirect() {
             // In a real scenario, this would be your target URL
-            window.location.href = 'dashboard.php';
+            window.location.href = 'Login.php';
         }
         
         function redirectNow() {
