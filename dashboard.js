@@ -42,6 +42,7 @@ async function getLocationKey(lat, lon, apiKey) {
       `https://dataservice.accuweather.com/locations/v1/cities/geoposition/search?apikey=${apiKey}&q=${lat},${lon}`
     );
     const data = await res.json();
+    console.log(data.Key);
     return data.Key;
   } catch (e) {
     console.error("Error getting location key:", e);
